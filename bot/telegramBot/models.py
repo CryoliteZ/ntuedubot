@@ -54,8 +54,8 @@ class Student(models.Model):
 class Take_Course(models.Model):
 	sid = models.ForeignKey(u'Student', max_length=9) #foreign key
 	cid = models.ForeignKey(u'Course', max_length=9) #foreign key
-	def __str__(self):
-		return self.cid
+	# def __str__(self):
+	# 	return self.cid
 
 class Event_Occur(models.Model):
 	eid = models.ForeignKey(u'Event', max_length=9) #foreign key
@@ -66,6 +66,7 @@ class Event_Occur(models.Model):
 class Store(models.Model):
 	name = models.CharField(u'name', max_length=9, primary_key = True)
 	location = models.CharField(u'location', max_length=50)
+	phone = models.CharField(u'phonenum', max_length=15)
 	def __str__(self):
 		return self.name
 

@@ -13,43 +13,43 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Command',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
-                ('name', models.CharField(verbose_name='name', max_length=50)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
+                ('name', models.CharField(max_length=50, verbose_name='name')),
                 ('information', models.TextField(verbose_name='information')),
             ],
         ),
         migrations.CreateModel(
             name='Course',
             fields=[
-                ('cid', models.CharField(verbose_name='ID', serialize=False, max_length=9, primary_key=True)),
+                ('cid', models.CharField(serialize=False, max_length=9, primary_key=True, verbose_name='ID')),
                 ('semester', models.IntegerField(verbose_name='semester')),
-                ('name', models.CharField(verbose_name='Name', max_length=50)),
-                ('courseNum', models.CharField(verbose_name='courseNum', max_length=50)),
-                ('classNo', models.CharField(verbose_name='classNo', max_length=50, blank=True)),
+                ('name', models.CharField(max_length=50, verbose_name='Name')),
+                ('courseNum', models.CharField(max_length=50, verbose_name='courseNum')),
+                ('classNo', models.CharField(max_length=50, verbose_name='classNo', blank=True)),
                 ('credit', models.IntegerField(verbose_name='Credit', blank=True)),
-                ('time', models.CharField(verbose_name='calssTime', max_length=15)),
+                ('time', models.CharField(max_length=15, verbose_name='classTime')),
             ],
         ),
         migrations.CreateModel(
             name='Event',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
-                ('name', models.CharField(verbose_name='Name', max_length=50)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
+                ('name', models.CharField(max_length=50, verbose_name='Name')),
                 ('action', models.TextField(verbose_name='action')),
             ],
         ),
         migrations.CreateModel(
             name='Event_Occur',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
-                ('cid', models.ForeignKey(to='telegramBot.Course', max_length=9)),
-                ('eid', models.ForeignKey(to='telegramBot.Event', max_length=9)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
+                ('cid', models.ForeignKey(max_length=9, to='telegramBot.Course')),
+                ('eid', models.ForeignKey(max_length=9, to='telegramBot.Event')),
             ],
         ),
         migrations.CreateModel(
-            name='GRADE',
+            name='Grade',
             fields=[
-                ('courseID', models.CharField(verbose_name='courseID', serialize=False, max_length=20, primary_key=True)),
+                ('courseID', models.CharField(serialize=False, max_length=20, primary_key=True, verbose_name='courseID')),
                 ('semester', models.IntegerField(verbose_name='semester')),
                 ('gradeA1', models.IntegerField(verbose_name='AplusNum')),
                 ('gradeA2', models.IntegerField(verbose_name='ANum')),
@@ -67,7 +67,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Log',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
                 ('isbotmessage', models.BooleanField(verbose_name='isbotmessage')),
                 ('context', models.TextField(verbose_name='context')),
             ],
@@ -75,9 +75,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Office',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
-                ('name', models.CharField(verbose_name='food', max_length=50)),
-                ('phone', models.CharField(verbose_name='food', max_length=50)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
+                ('name', models.CharField(max_length=50, verbose_name='food')),
+                ('phone', models.CharField(max_length=50, verbose_name='food')),
                 ('startTime', models.TimeField(verbose_name='startTime')),
                 ('EndTime', models.TimeField(verbose_name='EndTime')),
             ],
@@ -85,32 +85,34 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Store',
             fields=[
-                ('name', models.CharField(verbose_name='name', serialize=False, max_length=9, primary_key=True)),
-                ('location', models.CharField(verbose_name='location', max_length=50)),
+                ('name', models.CharField(serialize=False, max_length=9, primary_key=True, verbose_name='name')),
+                ('location', models.CharField(max_length=50, verbose_name='location')),
+                ('phone', models.CharField(max_length=15, verbose_name='phonenum')),
             ],
         ),
         migrations.CreateModel(
-            name='Store_food',
+            name='Store_Food',
             fields=[
-                ('food', models.CharField(verbose_name='food', max_length=50)),
-                ('price', models.IntegerField(verbose_name='price', serialize=False, primary_key=True)),
+                ('food', models.CharField(max_length=50, verbose_name='food')),
+                ('price', models.IntegerField(serialize=False, primary_key=True, verbose_name='price')),
                 ('sid', models.ForeignKey(to='telegramBot.Store')),
             ],
         ),
         migrations.CreateModel(
             name='Student',
             fields=[
-                ('sid', models.CharField(verbose_name='ID', serialize=False, max_length=9, primary_key=True)),
-                ('name', models.CharField(verbose_name='Name', max_length=50)),
-                ('department', models.CharField(verbose_name='department', max_length=20, blank=True)),
+                ('sid', models.CharField(serialize=False, max_length=9, primary_key=True, verbose_name='ID')),
+                ('name', models.CharField(max_length=50, verbose_name='Name')),
+                ('department', models.CharField(max_length=20, verbose_name='department', blank=True)),
+                ('chat_id', models.CharField(max_length=50, verbose_name='chat_id')),
             ],
         ),
         migrations.CreateModel(
-            name='takeCourse',
+            name='Take_Course',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, primary_key=True, auto_created=True)),
-                ('cid', models.ForeignKey(to='telegramBot.Course', max_length=9)),
-                ('sid', models.ForeignKey(to='telegramBot.Student', max_length=9)),
+                ('id', models.AutoField(serialize=False, primary_key=True, verbose_name='ID', auto_created=True)),
+                ('cid', models.ForeignKey(max_length=9, to='telegramBot.Course')),
+                ('sid', models.ForeignKey(max_length=9, to='telegramBot.Student')),
             ],
         ),
     ]

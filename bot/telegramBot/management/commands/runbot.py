@@ -67,11 +67,12 @@ class Command(NoArgsCommand):
                 userstate.__init__(chat_id)
                 return
 
-            student = Student.objects.filter(chat_id = chat_id)
-            if(len(student) == 0):
+            studentSet = getStudentSet(chat_id)
+            if(len(studentSet) == 0):
                 userstate.setting_done = False
             else:
                 userstate.setting_done = True
+                student = studentSet[0]
 
             service_keyboard = ReplyKeyboardMarkup(
                                 keyboard=[
@@ -138,9 +139,10 @@ class Command(NoArgsCommand):
 
                     
                 if(not userstate.setting_done):
-                    bot.sendMessage(chat_id, "您需要設定個人的資料以利我們提供服務！\n 請輸入 '學號#姓名#系所' 設定，中間以#字隔開")                   
+                    bot.sendMessage(chat_id, "您需要設定個人的資料以利我們提供服務！\n\n請輸入 '學號#姓名#系所' 設定，中間以#字隔開")                   
                 else:
-                    bot.sendMessage(chat_id, "請輸入 '學號#姓名#系所' 設定，中間以#字隔開")
+                    bot.sendMessage(chat_id, "目前的使用者：\n" + "姓名： " + student.name + "\n學號：" + student.sid + " \n系級：" + student.department)
+                    bot.sendMessage(chat_id, "請輸入 '學號#姓名#系所' 更新設定，中間以#字隔開")
                 userstate.setting_confirm_state = True
                 return
 
@@ -148,7 +150,7 @@ class Command(NoArgsCommand):
             if(userstate.sub_state):  
                 #  決定是否訂閱              
                 if(userstate.sub_course_state):
-                    # msg = 課號
+                    # msg = 識別碼
                     # @DB involves, handle and find the course
                     # exception handling if course doesn't exists                                    
                     # display course information 
@@ -157,11 +159,10 @@ class Command(NoArgsCommand):
                         bot.sendMessage(chat_id, "找不到該課程！")
                     else:
                         target_course = course_set[0]
-                        bot.sendMessage(chat_id, target_course.cid + " " + target_course.name + " " + target_course.time)
-                        bot.sendMessage(chat_id, "羽球中級")
+                        bot.sendMessage(chat_id, "課程識別碼: " + target_course.cid + "\n課程名稱: " + target_course.name + "\n上課時間： " + target_course.time + "\n課程網課號: " + target_course.courseNum)             
                         # @DB involves, callback_data = "SUB_" + COURSEID   
                         inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                           [InlineKeyboardButton(text='Yes', callback_data='SUB_' + target_course.cid ), InlineKeyboardButton(text='No', callback_data='SUB_FAIL')],
+                           [InlineKeyboardButton(text='Yes', callback_data='SUB_' + target_course.cid + '_' + str(chat_id)), InlineKeyboardButton(text='No', callback_data='SUB_FAIL')],
                         ])
                         bot.sendMessage(chat_id, "確定訂閱？", reply_markup=inline_keyboard)
 
@@ -172,8 +173,8 @@ class Command(NoArgsCommand):
                     return
 
 
-                # 輸入訂閱課號
-                bot.sendMessage(chat_id, "請輸入您要訂閱的課號：")
+                # 輸入訂閱識別碼
+                bot.sendMessage(chat_id, "請輸入您要訂閱的識別碼：")
                 if(userstate.sub_course_state == False):
                     userstate.sub_course_state = True
                     return
@@ -184,11 +185,15 @@ class Command(NoArgsCommand):
             if(userstate.coursenotf_state):   
                 # 決定通知項目               
                 if(userstate.coursenotf_course_state):
-                    # msg = 課號
+                    # msg = 識別碼
                     # @DB involves, handle and find the course
                     # exception handling if course doesn't exists
+                    course_set = Course.objects.filter(cid = msg)
+                    if(len(course_set) == 0):
+                        bot.sendMessage(chat_id, "找不到該課程！")
+
                     inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                       [InlineKeyboardButton(text="點名", callback_data='NOTF_ROLL_COURSEID'), InlineKeyboardButton(text="作業", callback_data='NOTF_HW_COURSEID')],
+                       [InlineKeyboardButton(text="點名", callback_data='NOTF_ROLL_' + msg), InlineKeyboardButton(text="作業", callback_data='NOTF_HW_' + msg)],
                     ])
                     bot.sendMessage(chat_id, "請問是課程還是作業通知呢？", reply_markup=inline_keyboard)
 
@@ -197,9 +202,12 @@ class Command(NoArgsCommand):
                     userstate.coursenotf_course_state = False
                     userstate.general_state = True
                     return
-                # 輸入通知課號
-                bot.sendMessage(chat_id, "請輸入要通知的課號：")
+                # 輸入通知識別碼
+                bot.sendMessage(chat_id, "請輸入要通知的識別碼：")
                 userstate.coursenotf_course_state = True
+
+
+
 
             # 美食
             if(userstate.food_state):
@@ -230,15 +238,25 @@ class Command(NoArgsCommand):
                 if(userstate.gpa_myGPA_state):
                     # save the courseID
                     # @DB involves, handle and find the course
-                    # exception handling if course doesn't exists     
+                    # exception handling if course doesn't exists 
+                    course_set = Course.objects.filter(cid = msg)
+                    if(len(course_set) == 0):
+                        bot.sendMessage(chat_id, "找不到該課程！")  
+                        # state release
+                        userstate.gpa_getGPA_state = False
+                        userstate.gpa_myGPA_state = False
+                        userstate.gpa_state = False
+                        userstate.general_state = True
+                        return
+
                     forecastCourseID = msg
                     # input user PR level
                     bot.sendMessage(chat_id, "請輸入您的PR值：")
                     userstate.gpa_getGPA_state = True
                     return
                  
-                # 輸入通知課號
-                bot.sendMessage(chat_id, "請輸入要預測的課號：",reply_markup=ReplyKeyboardRemove())
+                # 輸入通知識別碼
+                bot.sendMessage(chat_id, "請輸入要預測的識別碼：",reply_markup=ReplyKeyboardRemove())
                 userstate.gpa_myGPA_state = True
 
                    
@@ -247,10 +265,16 @@ class Command(NoArgsCommand):
             if(userstate.search_course_state):
 
                 # msg = 課名
-                # @DB involves, 用課名找到課號
+                # @DB involves, 用課名找到識別碼
                 if(userstate.search_course_list_state):
-                    bot.sendMessage(chat_id, "找到結果如下：")
-                    bot.sendLocation(chat_id, 25.014038, 121.538184, disable_notification=None)
+                    course_set = Course.objects.filter(cid = msg)
+                    if(len(course_set) == 0):
+                        bot.sendMessage(chat_id, "找不到該課程！")
+                    else:
+                        bot.sendMessage(chat_id, "找到結果如下：")
+                    target_course = course_set[0]
+                    bot.sendMessage(chat_id, "課程識別碼: " + target_course.cid + "\n課程名稱: " + target_course.name + "\n上課時間： " + target_course.time + "\n課程網課號: " + target_course.courseNum) 
+                    # bot.sendLocation(chat_id, 25.014038, 121.538184, disable_notification=None)
                     # state release
                     userstate.search_course_state = False
                     userstate.search_course_list_state = False
@@ -275,10 +299,19 @@ class Command(NoArgsCommand):
             if "SUB_" in query_data:                
                 if(query_data == "SUB_FAIL"):
                     bot.answerCallbackQuery(query_id, text="取消訂閱，請問您還需要什麼服務？")
-                else:
+                else:                    
                     # subsricbe to course (get courseid by splitting query_data)
                     # @DB involves user and course subsribe relation
-                    tc = Take_Course()
+                    buff = query_data.split("_")
+                    print()
+                    courseID = query_data.split('_')[1]
+                    course_set = Course.objects.filter(cid = courseID)                    
+                    chat_id = query_data.split('_')[2]                    
+                    studentSet = getStudentSet(chat_id)    
+                    print (studentSet[0].sid, courseID)         
+                    tc = Take_Course(cid = course_set[0], sid = studentSet[0])
+                    tc.save()
+
                     bot.answerCallbackQuery(query_id, text="訂閱成功，課程訊息不再漏接！")
 
             # For course notification callback  
@@ -288,11 +321,21 @@ class Command(NoArgsCommand):
                     # event occurs: courseid has HW (get courseid by splitting query_data)
                     # @DB involves: course and HW event relation
                     # @DB involves: find all users who has sub this course and boradcast notification
+                    courseID = query_data.split('_')[2]
+                    course = Course.objects.filter(cid = courseID)[0].name
+                    student_set = Take_Course.objects.filter(cid = courseID)
+                    for i in range(0,len(student_set)):                        
+                        bot.sendMessage(student_set[i].chat_id , text = course+" 該交作業了!")
                     bot.answerCallbackQuery(query_id, text="已幫您通知同學們該交作業了！")
                 elif "NOTF_ROLL_" in query_data:
                     # event occurs: courseid has HW (get courseid by splitting query_data)
                     # @DB involves  course and ROLL event relation
                     # @DB involves: find all users who has sub this course and boradcast notification
+                    courseID = int(query_data.split('_')[2])
+                    course = Course.objects.filter(cid = courseID)[0].name
+                    student_set = Take_Course.objects.filter(cid = courseID)
+                    for i in range(0,len(student_set)):
+                        bot.sendMessage(student_set[i].chat_id , text = course+" 點名了!")                       
                     bot.answerCallbackQuery(query_id, text="已幫您通知大家點名了！")
 
 
@@ -330,7 +373,8 @@ class Command(NoArgsCommand):
             return None
 
 
-
+        def getStudentSet(chat_id):            
+            return Student.objects.filter(chat_id = chat_id)
 
 
 
