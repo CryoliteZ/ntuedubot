@@ -8,9 +8,9 @@ class Course(models.Model):
     classNo = models.CharField(u'classNo',max_length=50, blank = True)
     credit = models.IntegerField(u'Credit', blank = True)
     # instructor = models.ForeignKey(u'Instructor',  blank = False, on_delete = models.PROTECT)  #deletion raise integrity error
-    time = models.CharField(u'calssTime', max_length=15)
+    time = models.CharField(u'classTime', max_length=15)
 
-    def __unicode__(self):
+    def __str__(self):
 	    return self.name
 
 # class Instructor(models.Model):
@@ -21,10 +21,10 @@ class Event(models.Model):
 	name = models.CharField(u'Name', max_length=50)
 	action = models.TextField(u'action')
 
-	def __unicode__(self):
+	def __str__(self):
 		return self.name
 	
-class GRADE(models.Model):
+class Grade(models.Model):
     courseID = models.CharField(u'courseID',max_length=20, primary_key = True) #foreign key
     semester = models.IntegerField(u'semester', blank = False)
     gradeA1 = models.IntegerField(u'AplusNum', blank = False)
@@ -39,40 +39,41 @@ class GRADE(models.Model):
     gradeF = models.IntegerField(u'FNum', blank = False)
     predictable = models.BooleanField(u'Predictable', blank = False)
 
-    def __unicode__(self):
+    def __str__(self):
 	    return self.courseID
 
 class Student(models.Model):
     sid = models.CharField(u'ID', max_length=9, primary_key = True)
     name = models.CharField(u'Name', max_length=50)
     department = models.CharField(u'department', max_length=20, blank = True)
+    chat_id = models.CharField(u'chat_id', max_length= 50,blank = False)
 
-    def __unicode__(self):
+    def __str__(self):
 	    return self.name
 
-class takeCourse(models.Model):
+class Take_Course(models.Model):
 	sid = models.ForeignKey(u'Student', max_length=9) #foreign key
 	cid = models.ForeignKey(u'Course', max_length=9) #foreign key
-	def __unicode__(self):
+	def __str__(self):
 		return self.cid
 
 class Event_Occur(models.Model):
 	eid = models.ForeignKey(u'Event', max_length=9) #foreign key
 	cid = models.ForeignKey(u'Course', max_length=9) #foreign key
-	def __unicode__(self):
+	def __str__(self):
 		return self.eid
 
 class Store(models.Model):
 	name = models.CharField(u'name', max_length=9, primary_key = True)
 	location = models.CharField(u'location', max_length=50)
-	def __unicode__(self):
+	def __str__(self):
 		return self.name
 
-class Store_food(models.Model):
+class Store_Food(models.Model):
 	sid = models.ForeignKey(u'Store') #foreign key
 	food = models.CharField(u'food', max_length=50)
 	price = models.IntegerField(u'price', primary_key = True)
-	def __unicode__(self):
+	def __str__(self):
 		return self.food
 
 class Office(models.Model):
@@ -80,7 +81,7 @@ class Office(models.Model):
 	phone = models.CharField(u'food', max_length=50)
 	startTime = models.TimeField(u'startTime')
 	EndTime = models.TimeField(u'EndTime')
-	def __unicode__(self):
+	def __str__(self):
 		return self.name
 
 	#constraint startTime < EndTime
@@ -88,11 +89,11 @@ class Office(models.Model):
 class Command(models.Model):
 	name = models.CharField(u'name', max_length=50)
 	information = models.TextField(u'information')
-	def __unicode__(self):
+	def __str__(self):
 		return self.name
 
 class Log(models.Model):
 	isbotmessage = models.BooleanField(u'isbotmessage')
 	context = models.TextField(u'context')
-	def __unicode__(self):
+	def __str__(self):
 		return self.context

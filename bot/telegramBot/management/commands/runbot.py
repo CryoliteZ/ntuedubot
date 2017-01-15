@@ -4,7 +4,7 @@ import sys
 import telepot
 from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
-from telegramBot.models import Event
+from telegramBot.models import *
 
 
 SUBSRIBE  = "訂閱課程"
@@ -32,102 +32,158 @@ class UserState:
 
         self.setting_state = False
         self.setting_confirm_state = False
+        self.setting_done = False
 
         self.general_state = True
 
         self.search_course_state = False
         self.search_course_list_state = False
+
+
         self.chat_id = chatid
-
-        
-
 
 
 class Command(NoArgsCommand):
     def handle_noargs(self, **options):
-        users = []       
+        users = [] 
+        userstate = None      
 
         # should hide
         TOKEN = '242374964:AAE-_ZYNHBGItT6UZZT6chi7gaDsVGmCHA0'
         
         def on_chat_message(msg):
             content_type, chat_type, chat_id = telepot.glance(msg)
-            if(getUser(chat_id) is None):
+            if(getUserState(chat_id) is None):
                 print("new user", chat_id)
-                user = UserState(chat_id)
-                users.append(user)
-            user = getUser(chat_id)
+                userstate = UserState(chat_id)
+                users.append(userstate)
 
+
+            userstate = getUserState(chat_id)
             msg = msg['text']
             print(chat_id, msg)   
             if(not bePolite(chat_id, msg)): 
                 #initialize state
-                user.__init__(chat_id)
+                userstate.__init__(chat_id)
                 return
 
+            student = Student.objects.filter(chat_id = chat_id)
+            if(len(student) == 0):
+                userstate.setting_done = False
+            else:
+                userstate.setting_done = True
+
             service_keyboard = ReplyKeyboardMarkup(
-                                    keyboard=[
-                                        [KeyboardButton(text=SUBSRIBE),KeyboardButton(text=COURSENOTI)], 
-                                        [KeyboardButton(text=SEARCHFOOD),KeyboardButton(text=GPAFORECAST)],
-                                        [KeyboardButton(text=USERSETTING),KeyboardButton(text=COUSRESRCH)]
-                                    ]
-                                )
+                                keyboard=[
+                                    [KeyboardButton(text=SUBSRIBE),KeyboardButton(text=COURSENOTI)], 
+                                    [KeyboardButton(text=SEARCHFOOD),KeyboardButton(text=GPAFORECAST)],
+                                    [KeyboardButton(text=USERSETTING),KeyboardButton(text=COUSRESRCH)]
+                                ]
+                            )     
 
             # state      
-            if(user.general_state):
+            if(userstate.general_state):
                 if(msg == SUBSRIBE):
-                    user.sub_state = True
-                    user.general_state = False
+                    userstate.sub_state = True
+                    userstate.general_state = False
                 elif(msg == COURSENOTI):
-                    user.coursenotf_state = True   
-                    user.general_state = False                 
+                    userstate.coursenotf_state = True   
+                    userstate.general_state = False                 
                 elif(msg == SEARCHFOOD):
-                    user.food_state = True
-                    user.general_state = False
+                    userstate.food_state = True
+                    userstate.general_state = False
                 elif(msg == GPAFORECAST):
-                    user.gpa_state = True 
-                    user.general_state = False                   
+                    userstate.gpa_state = True 
+                    userstate.general_state = False                   
                 elif(msg == USERSETTING):
-                    user.setting_state = True
-                    user.general_state = False
+                    userstate.setting_state = True
+                    userstate.general_state = False
                 elif(msg == COUSRESRCH):
-                    user.search_course_state = True
-                    user.general_state = False
+                    userstate.search_course_state = True
+                    userstate.general_state = False
+
+             #使用者設定
+            if(userstate.setting_state or (not userstate.setting_done)):
+                if(userstate.setting_confirm_state):
+                    flag = True
+                    buff = msg.split("#")
+                    # Check input
+                    if (len(buff) != 3):
+                        flag = False
+                    for token in buff:
+                        if(len(token) == 0):
+                            flag = False
+                    print(buff)
+                    if(flag):                        
+                        # save the user settings
+                        # @DB involves, record Student attr.
+                        bot.sendMessage(chat_id, "設定成功")
+                        if(not userstate.setting_done):
+                            newStudent = Student(sid = buff[0], name = buff[1], department = buff[2], chat_id = chat_id)
+                            newStudent.save()
+                            userstate.setting_done = True                        
+                            bot.sendMessage(chat_id, '您好，請問您需要什麼服務？', reply_markup=service_keyboard)
+                        else:
+                            # 用 sid 找到要更新的人 (目前未擋幫別人更新)
+                            updateStudentSet = Student.objects.filter(sid = buff[0])
+                            updateStudentSet.update(name = buff[1], department = buff[2])
+                        
+                    else:
+                        bot.sendMessage(chat_id, "設定失敗")
+                    # state release
+                    userstate.setting_confirm_state = False
+                    userstate.setting_state = False
+                    userstate.general_state = True
+                    return
+
+                    
+                if(not userstate.setting_done):
+                    bot.sendMessage(chat_id, "您需要設定個人的資料以利我們提供服務！\n 請輸入 '學號#姓名#系所' 設定，中間以#字隔開")                   
+                else:
+                    bot.sendMessage(chat_id, "請輸入 '學號#姓名#系所' 設定，中間以#字隔開")
+                userstate.setting_confirm_state = True
+                return
 
             # 訂閱課程
-            if(user.sub_state):  
+            if(userstate.sub_state):  
                 #  決定是否訂閱              
-                if(user.sub_course_state):
+                if(userstate.sub_course_state):
                     # msg = 課號
                     # @DB involves, handle and find the course
                     # exception handling if course doesn't exists                                    
                     # display course information 
-                    bot.sendMessage(chat_id, "羽球中級")
-                    # @DB involves, callback_data = "SUB_" + COURSEID   
-                    inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                       [InlineKeyboardButton(text='Yes', callback_data='SUB_COURSEID'), InlineKeyboardButton(text='No', callback_data='SUB_FAIL')],
-                    ])
-                    bot.sendMessage(chat_id, "確定訂閱？", reply_markup=inline_keyboard)
+                    course_set = Course.objects.filter(cid = msg)
+                    if(len(course_set) == 0):
+                        bot.sendMessage(chat_id, "找不到該課程！")
+                    else:
+                        target_course = course_set[0]
+                        bot.sendMessage(chat_id, target_course.cid + " " + target_course.name + " " + target_course.time)
+                        bot.sendMessage(chat_id, "羽球中級")
+                        # @DB involves, callback_data = "SUB_" + COURSEID   
+                        inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                           [InlineKeyboardButton(text='Yes', callback_data='SUB_' + target_course.cid ), InlineKeyboardButton(text='No', callback_data='SUB_FAIL')],
+                        ])
+                        bot.sendMessage(chat_id, "確定訂閱？", reply_markup=inline_keyboard)
 
                     # state release
-                    user.sub_course_state = False
-                    user.sub_state = False
-                    user.general_state = True
+                    userstate.sub_course_state = False
+                    userstate.sub_state = False
+                    userstate.general_state = True
                     return
 
 
                 # 輸入訂閱課號
                 bot.sendMessage(chat_id, "請輸入您要訂閱的課號：")
-                if(user.sub_course_state == False):
-                    user.sub_course_state = True
+                if(userstate.sub_course_state == False):
+                    userstate.sub_course_state = True
                     return
 
 
 
             # 課程通知
-            if(user.coursenotf_state):   
+            if(userstate.coursenotf_state):   
                 # 決定通知項目               
-                if(user.coursenotf_course_state):
+                if(userstate.coursenotf_course_state):
                     # msg = 課號
                     # @DB involves, handle and find the course
                     # exception handling if course doesn't exists
@@ -137,103 +193,79 @@ class Command(NoArgsCommand):
                     bot.sendMessage(chat_id, "請問是課程還是作業通知呢？", reply_markup=inline_keyboard)
 
                     # state release
-                    user.coursenotf_state = False
-                    user.coursenotf_course_state = False
-                    user.general_state = True
+                    userstate.coursenotf_state = False
+                    userstate.coursenotf_course_state = False
+                    userstate.general_state = True
                     return
                 # 輸入通知課號
                 bot.sendMessage(chat_id, "請輸入要通知的課號：")
-                user.coursenotf_course_state = True
+                userstate.coursenotf_course_state = True
 
             # 美食
-            if(user.food_state):
-                user.food_state = False
-                user.general_state = True
+            if(userstate.food_state):
+                userstate.food_state = False
+                userstate.general_state = True
 
 
 
             # GPA 預測
-            if(user.gpa_state):
+            if(userstate.gpa_state):
                 forecastCourseID  = ""
                 UserSelfPr = 50
 
                 # Forecasrt result
-                if(user.gpa_getGPA_state):   
+                if(userstate.gpa_getGPA_state):   
                     UserSelfPr = msg                 
                     ResultGrade = forecastUserGrade(forecastCourseID, UserSelfPr)
                     bot.sendMessage(chat_id, "預測的等第：" + ResultGrade,reply_markup=service_keyboard)
 
                     # state release
-                    user.gpa_getGPA_state = False
-                    user.gpa_myGPA_state = False
-                    user.gpa_state = False
-                    user.general_state = True
+                    userstate.gpa_getGPA_state = False
+                    userstate.gpa_myGPA_state = False
+                    userstate.gpa_state = False
+                    userstate.general_state = True
                     return
 
                 # 輸入PR值
-                if(user.gpa_myGPA_state):
+                if(userstate.gpa_myGPA_state):
                     # save the courseID
                     # @DB involves, handle and find the course
                     # exception handling if course doesn't exists     
                     forecastCourseID = msg
                     # input user PR level
                     bot.sendMessage(chat_id, "請輸入您的PR值：")
-                    user.gpa_getGPA_state = True
+                    userstate.gpa_getGPA_state = True
                     return
                  
                 # 輸入通知課號
                 bot.sendMessage(chat_id, "請輸入要預測的課號：",reply_markup=ReplyKeyboardRemove())
-                user.gpa_myGPA_state = True
+                userstate.gpa_myGPA_state = True
 
                    
-            #使用者設定
-            if(user.setting_state):
-                if(user.setting_confirm_state):
-                    flag = True
-                    buff = msg.split("#")
-                    # Check input
-                    flag = len(buff) != 3
-                    for token in buff:
-                        if(len(token) == 0):
-                            flag = False
-
-                    if(flag):                        
-                        # save the user settings
-                        # @DB involves, record Student attr.
-                        bot.sendMessage(chat_id, "設定成功")
-                    else:
-                        bot.sendMessage(chat_id, "設定失敗")
-                    # state release
-                    user.setting_confirm_state = False
-                    user.setting_state = False
-                    user.general_state = True
-                    return
-                bot.sendMessage(chat_id, "請輸入 '學號#姓名#系所' 設定，中間以#字隔開")
-                user.setting_confirm_state = True
 
             #課程查詢
-            if(user.search_course_state):
+            if(userstate.search_course_state):
 
                 # msg = 課名
                 # @DB involves, 用課名找到課號
-                if(user.search_course_list_state):
+                if(userstate.search_course_list_state):
                     bot.sendMessage(chat_id, "找到結果如下：")
                     bot.sendLocation(chat_id, 25.014038, 121.538184, disable_notification=None)
                     # state release
-                    user.search_course_state = False
-                    user.search_course_list_state = False
-                    user.general_state = True
+                    userstate.search_course_state = False
+                    userstate.search_course_list_state = False
+                    userstate.general_state = True
                     return
 
 
 
                 bot.sendMessage(chat_id, "查詢課程相關資訊的服務！請輸入欲查詢的課名：")
-                user.search_course_list_state = True
+                userstate.search_course_list_state = True
                 
 
 
 
-            if user.general_state == True:
+            if userstate.general_state == True:
                 bot.sendMessage(chat_id, '您好，請問您需要什麼服務？', reply_markup=service_keyboard)
 
         def on_callback_query(msg):
@@ -246,6 +278,7 @@ class Command(NoArgsCommand):
                 else:
                     # subsricbe to course (get courseid by splitting query_data)
                     # @DB involves user and course subsribe relation
+                    tc = Take_Course()
                     bot.answerCallbackQuery(query_id, text="訂閱成功，課程訊息不再漏接！")
 
             # For course notification callback  
@@ -290,10 +323,10 @@ class Command(NoArgsCommand):
             else:
                 return True
 
-        def getUser(chat_id):
-            for user in users:
-                if user.chat_id == chat_id:
-                    return user
+        def getUserState(chat_id):
+            for userstate in users:
+                if userstate.chat_id == chat_id:
+                    return userstate
             return None
 
 
