@@ -4,18 +4,18 @@ import sys
 import telepot
 from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
-from courses.models import Question
 
 SUBSRIBE  = "訂閱課程"
 COURSENOTI = "課程通知"
 SEARCHFOOD = "查詢美食"
 GPAFORECAST = "GPA預測"
 USERSETTING = "使用者設定"
+COUSRESRCH = "課程查詢"
 USERHELP = "HELP"
 
 
 class UserState:
-    def __init__(self):
+    def __init__(self, chatid):
         self.sub_state = False
         self.sub_course_state = False
 
@@ -29,32 +29,45 @@ class UserState:
         self.gpa_getGPA_state = False
 
         self.setting_state = False
-        
+        self.setting_confirm_state = False
+
         self.general_state = True
+
+        self.search_course_state = False
+        self.search_course_list_state = False
+        self.chat_id = chatid
+
+        
 
 
 
 class Command(NoArgsCommand):
     def handle_noargs(self, **options):
-
-        user = UserState()
+        users = []       
 
         # should hide
         TOKEN = '242374964:AAE-_ZYNHBGItT6UZZT6chi7gaDsVGmCHA0'
         
         def on_chat_message(msg):
             content_type, chat_type, chat_id = telepot.glance(msg)
+            if(getUser(chat_id) is None):
+                print("new user", chat_id)
+                user = UserState(chat_id)
+                users.append(user)
+            user = getUser(chat_id)
+
             msg = msg['text']
             print(chat_id, msg)   
-            if(not bePolite(chat_id, msg)):    
+            if(not bePolite(chat_id, msg)): 
+                #initialize state
+                user.__init__(chat_id)
                 return
-
 
             service_keyboard = ReplyKeyboardMarkup(
                                     keyboard=[
                                         [KeyboardButton(text=SUBSRIBE),KeyboardButton(text=COURSENOTI)], 
                                         [KeyboardButton(text=SEARCHFOOD),KeyboardButton(text=GPAFORECAST)],
-                                        [KeyboardButton(text=USERSETTING),KeyboardButton(text=USERHELP)]
+                                        [KeyboardButton(text=USERSETTING),KeyboardButton(text=COUSRESRCH)]
                                     ]
                                 )
 
@@ -74,6 +87,9 @@ class Command(NoArgsCommand):
                     user.general_state = False                   
                 elif(msg == USERSETTING):
                     user.setting_state = True
+                    user.general_state = False
+                elif(msg == COUSRESRCH):
+                    user.search_course_state = True
                     user.general_state = False
 
             # 訂閱課程
@@ -128,6 +144,10 @@ class Command(NoArgsCommand):
                 user.coursenotf_course_state = True
 
             # 美食
+            if(user.food_state):
+                user.food_state = False
+                user.general_state = True
+
 
 
             # GPA 預測
@@ -148,7 +168,6 @@ class Command(NoArgsCommand):
                     user.general_state = True
                     return
 
-
                 # 輸入PR值
                 if(user.gpa_myGPA_state):
                     # save the courseID
@@ -164,8 +183,51 @@ class Command(NoArgsCommand):
                 bot.sendMessage(chat_id, "請輸入要預測的課號：",reply_markup=ReplyKeyboardRemove())
                 user.gpa_myGPA_state = True
 
-               
+                   
             #使用者設定
+            if(user.setting_state):
+                if(user.setting_confirm_state):
+                    flag = True
+                    buff = msg.split("#")
+                    # Check input
+                    flag = len(buff) != 3
+                    for token in buff:
+                        if(len(token) == 0):
+                            flag = False
+
+                    if(flag):                        
+                        # save the user settings
+                        # @DB involves, record Student attr.
+                        bot.sendMessage(chat_id, "設定成功")
+                    else:
+                        bot.sendMessage(chat_id, "設定失敗")
+                    # state release
+                    user.setting_confirm_state = False
+                    user.setting_state = False
+                    user.general_state = True
+                    return
+                bot.sendMessage(chat_id, "請輸入 '學號#姓名#系所' 設定，中間以#字隔開")
+                user.setting_confirm_state = True
+
+            #課程查詢
+            if(user.search_course_state):
+
+                # msg = 課名
+                # @DB involves, 用課名找到課號
+                if(user.search_course_list_state):
+                    bot.sendMessage(chat_id, "找到結果如下：")
+                    bot.sendLocation(chat_id, 25.014038, 121.538184, disable_notification=None)
+                    # state release
+                    user.search_course_state = False
+                    user.search_course_list_state = False
+                    user.general_state = True
+                    return
+
+
+
+                bot.sendMessage(chat_id, "查詢課程相關資訊的服務！請輸入欲查詢的課名：")
+                user.search_course_list_state = True
+                
 
 
 
@@ -225,6 +287,12 @@ class Command(NoArgsCommand):
                 return False
             else:
                 return True
+
+        def getUser(chat_id):
+            for user in users:
+                if user.chat_id == chat_id:
+                    return user
+            return None
 
 
 
