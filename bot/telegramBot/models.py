@@ -95,4 +95,4 @@ class Log(models.Model):
 	isbotmessage = models.BooleanField(u'isbotmessage')
 	context = models.TextField(u'context')
 	def __unicode__(self):
-		return self.name
+		return self.context

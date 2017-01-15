@@ -4,6 +4,8 @@ import sys
 import telepot
 from telepot.namedtuple import InlineQueryResultArticle, InputTextMessageContent
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
+from telegramBot.models import Event
+
 
 SUBSRIBE  = "訂閱課程"
 COURSENOTI = "課程通知"
